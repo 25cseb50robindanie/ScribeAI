@@ -516,11 +516,11 @@ def update_results_spreadsheet(
             row_to_update = r
             break
             
-    # Calculate percentage and pass/fail (threshold 40%)
+    # Calculate percentage and pass/fail (threshold 50%)
     if total_marks is not None:
         percentage = (total_marks / max_marks * 100) if max_marks > 0 else 0.0
         pct_str = f"{percentage:.1f}%"
-        pass_fail = "Pass" if percentage >= 40.0 else "Fail"
+        pass_fail = "Pass" if percentage >= 50.0 else "Fail"
         marks_val = total_marks
     else:
         pct_str = "N/A"
@@ -1449,8 +1449,8 @@ def compile_batch_node(node_input, ctx: Context):
         if score is not None:
             score_str = f"{score}/{max_score}"
             pct = (score / max_score) * 100
-            pf = "Pass" if pct >= 40.0 else "Fail"
-            if pct >= 40.0:
+            pf = "Pass" if pct >= 50.0 else "Fail"
+            if pct >= 50.0:
                 passes += 1
         else:
             score_str = "N/A"
