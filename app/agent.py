@@ -10,8 +10,77 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+import re
 from google import genai
 from google.genai import types
+from google.genai.models import Models, AsyncModels
+from google.genai.errors import APIError
+from tenacity import retry, stop_after_attempt, retry_if_exception
+from tenacity.asyncio import AsyncRetrying
+
+def is_retriable_error(exception):
+    if isinstance(exception, APIError):
+        # Retry on 503 (Service Unavailable), 429 (Too Many Requests), 500 (Internal Server Error)
+        if exception.code in (429, 500, 503):
+            return True
+    msg = str(exception).lower()
+    return any(status in msg for status in ["503", "429", "500", "overloaded", "unavailable", "rate limit", "resourceexhausted"])
+
+def custom_wait(retry_state):
+    exc = retry_state.outcome.exception()
+    if exc:
+        msg = str(exc)
+        if "429" in msg or "resource_exhausted" in msg.lower():
+            match = re.search(r"Please retry in ([\d\.]+)s", msg)
+            if match:
+                delay = float(match.group(1)) + 2.0
+                print(f"[RETRY LOG] Quota exceeded (429). Sleeping for {delay:.2f} seconds as requested by API...")
+                return delay
+            print("[RETRY LOG] Quota exceeded (429). Sleeping for 45 seconds...")
+            return 45.0
+        elif "503" in msg or "unavailable" in msg.lower():
+            delay = 5.0 + retry_state.attempt_number * 2
+            print(f"[RETRY LOG] Service Unavailable (503). Sleeping for {delay:.2f} seconds...")
+            return delay
+    delay = min(15.0, 2.0 ** retry_state.attempt_number)
+    print(f"[RETRY LOG] Transient error. Sleeping for {delay:.2f} seconds...")
+    return delay
+
+original_generate_content_sync = Models.generate_content
+original_generate_content_async = AsyncModels.generate_content
+
+@retry(
+    retry=retry_if_exception(is_retriable_error),
+    wait=custom_wait,
+    stop=stop_after_attempt(12),
+    reraise=True
+)
+def patched_generate_content_sync(self, *args, **kwargs):
+    model_name = kwargs.get("model") or (args[0] if args else "unknown")
+    try:
+        return original_generate_content_sync(self, *args, **kwargs)
+    except Exception as e:
+        print(f"[RETRY LOG] Sync call failed for model {model_name} with: {e}. Retrying if eligible...")
+        raise e
+
+async def patched_generate_content_async(self, *args, **kwargs):
+    model_name = kwargs.get("model") or (args[0] if args else "unknown")
+    async for attempt in AsyncRetrying(
+        retry=retry_if_exception(is_retriable_error),
+        wait=custom_wait,
+        stop=stop_after_attempt(12),
+        reraise=True
+    ):
+        with attempt:
+            try:
+                return await original_generate_content_async(self, *args, **kwargs)
+            except Exception as e:
+                print(f"[RETRY LOG] Async call failed for model {model_name} with: {e}. Retrying if eligible...")
+                raise e
+
+# Apply the monkey-patch
+Models.generate_content = patched_generate_content_sync
+AsyncModels.generate_content = patched_generate_content_async
 from google.adk import Agent, Workflow, Event, Context
 from google.adk.events import RequestInput
 from google.adk.apps import App
@@ -513,7 +582,7 @@ gdrive_toolset = McpToolset(
 # Entry Point & QA Agents
 entry_point_agent = Agent(
     name="entry_point",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Greets the user and asks if they want to process an answer sheet or ask a question.",
     instruction="""Analyze the user's input:
 - If they want to process a student answer sheet, respond with exactly: "ROUTE_PROCESS"
@@ -525,7 +594,7 @@ entry_point_agent = Agent(
 
 prompt_extractor_agent = Agent(
     name="prompt_extractor",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Prompts the user for the student answer sheet image file path.",
     instruction="""Ask the user to provide the file path to the student answer sheet image.
 Once the user provides the file path, extract it and output exactly: "IMAGE_PATH: <extracted_path>"
@@ -534,7 +603,7 @@ Once the user provides the file path, extract it and output exactly: "IMAGE_PATH
 
 agent_qa = Agent(
     name="scribeai_qa_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Answers questions about ScribeAI pipeline, agents, and marking schemes.",
     instruction="""You are a helpful Q&A assistant for ScribeAI.
 Answer the user's questions about ScribeAI, its pipeline agents, routing thresholds, or reference marking schemes.
@@ -546,7 +615,7 @@ Keep your response concise.
 # Agent 1: Handwriting Extractor Agent (Metadata only, executed inside custom python node for exact response_schema control)
 agent_extractor = Agent(
     name="agent_extractor",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Extracts handwriting from student answer sheets and outputs JSON with confidence scores.",
     instruction="Transcribe handwritten student answers exactly as written. Assign legibility confidence (0-100)."
 )
@@ -554,7 +623,7 @@ agent_extractor = Agent(
 # Agent 2: Concept Evaluator Agent (Metadata only, executed inside custom node for exact grading response_schema control)
 agent_evaluator = Agent(
     name="agent_evaluator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Evaluates student answers concept-by-concept against a marking scheme.",
     instruction="Evaluate correctness concept-by-concept against reference scheme. Assign scores and confidence."
 )
@@ -564,7 +633,7 @@ agent_evaluator = Agent(
 # Agent 4: Re-evaluator Agent
 agent_reevaluator = Agent(
     name="agent_reevaluator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Independently grades student answers as a senior evaluator for second opinion validation.",
     instruction="Independently grade answers concept-by-concept against reference scheme for comparison."
 )
@@ -572,7 +641,7 @@ agent_reevaluator = Agent(
 # Agent 4: Report Generator Agent (Runs after evaluation is complete/averaged and saves locally or to Google Drive)
 agent_report_generator = Agent(
     name="agent4_report_node",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Generates a Markdown report and saves it locally or uploads it to Google Drive.",
     instruction="""You are a Senior Evaluator and Report Writer.
 Your task is to take the grading results provided in the prompt, format a complete grading report, and save it.
@@ -1093,7 +1162,7 @@ def run_comparison_node(node_input, ctx: Context):
 # Agent 5: Spreadsheet Uploader Agent (Uploads results CSV to Google Drive via MCP)
 agent_spreadsheet_uploader = Agent(
     name="agent_spreadsheet_uploader",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Uploads the results CSV to Google Drive using the create_file MCP tool.",
     instruction="""You are a Data Coordinator.
 Your task is to take the CSV content provided in the prompt and save it to Google Drive using the `create_file` tool.
