@@ -4,6 +4,65 @@ AI-powered handwritten answer sheet evaluation using Google ADK 2.0, Gemini 2.5 
 
 ---
 
+## 🎯 Kaggle Submission: Reference Materials & Quick Start
+
+This repository is prepared for Kaggle evaluation and includes pre-packaged reference materials and answer sheets to demonstrate ScribeAI's capabilities across different evaluation scenarios.
+
+### 📚 Reference PDFs Included in Project Root
+* **[OBJECT ORIENTED PROGRAMMING USING C++.pdf](file:///OBJECT%20ORIENTED%20PROGRAMMING%20USING%20C%2B%2B.pdf)**: The official C++ OOP exam question paper.
+* **[Answer booklet.pdf](file:///Answer%20booklet.pdf)**: The printed answer booklet template containing student instructions and blank pages where students write their exams.
+
+### 📝 Evaluation Marking Scheme
+The grading engine uses a structured C++ OOP marking scheme located at **[app/marking_scheme.json](file:///app/marking_scheme.json)**.
+> [!IMPORTANT]
+> **AI Grading Axiom**: The grading capability of the AI is directly proportional to how detailed and robust the marking scheme JSON is. Detailed concept lists lead to extremely accurate, objective, and consistent evaluations.
+
+### 📂 Sample Student Answer Sheets (in `sample/`)
+The `sample/` directory contains 5 distinct student answer sheets representing diverse handwriting and evaluation profiles:
+* **Robin Danie (`Answersheet_Robin_Danie_CS001.pdf`)**: Clear, highly legible, print-like handwriting.
+* **Ganga (`Answersheet_Bad_CS002.pdf`)**: Messy, rushed, and typical bad handwriting.
+* **Bala Krishnan (`Answersheet_Border_CS003.pdf`)**: Normal handwriting, borderline grading case.
+* **Sumitha (`Answersheet_PromptInjection_CS004.pdf`)**: Attempted prompt injections begging for pass marks.
+* **Arul (`Answersheet_worstHandwriting_CS005.pdf`)**: Extremely bad/worst handwriting with crossed-out prompt injections.
+
+---
+
+## 🚀 Copy-Paste Evaluation Commands
+
+You can run evaluations locally in two ways: programmatically via scripts or interactively in the Web UI playground.
+
+### Option A: Interactive Web UI Playground
+Start the local server:
+```bash
+uv run adk web --port 8000
+```
+Open **http://localhost:8000** in your browser. From here, you can:
+* Chat with ScribeAI, upload any PDF/image answer sheet, and watch it grade in real-time.
+* **Batch Grade All Papers at Once**: Simply send the word `sample` in the Web UI chat. ScribeAI will automatically detect it as a folder, grade all 5 papers sequentially, and save results.
+
+### Option B: Programmatic CLI Evaluation
+If you want to run the pipeline programmatically in your terminal:
+
+* **Evaluate a Single Paper**:
+  ```bash
+  uv run python scratch/test_run.py
+  ```
+  *(Grades Robin Danie's paper CS001)*
+
+* **Batch Evaluate All 5 Sample Papers**:
+  ```bash
+  uv run python scratch/test_batch.py
+  ```
+  *(Grades all student papers in the `sample/` folder sequentially)*
+
+### 📊 Grading Outputs
+Once an evaluation runs, ScribeAI stores results in:
+* **`spreadsheets/results.xlsx`** (Excel results logging)
+* **`reports/report_<student_id>.md`** (Question-by-concept markdown grading reports)
+* **`batch_reports/batch_<timestamp>.md`** (Master run batch summary, when batch processed)
+
+---
+
 ## Overview
 
 ScribeAI is a multi-agent system that automates the evaluation of handwritten student answer sheets.
