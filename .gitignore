@@ -1,0 +1,49 @@
+# Python environment and cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+build/
+dist/
+*.egg-info/
+
+# ScribeAI credentials and keys (CRITICAL - DO NOT COMMIT)
+.env
+credentials.json
+token.json
+
+# ADK Session Databases and Cache
+.adk/
+app/.adk/
+
+# Student answer sheets and grading reports (personal data)
+uploads/*
+!uploads/.gitkeep
+
+extracted/*
+!extracted/.gitkeep
+
+evaluations/*
+!evaluations/.gitkeep
+
+reports/*
+!reports/.gitkeep
+
+spreadsheets/*
+!spreadsheets/.gitkeep
+
+batch_reports/*
+!batch_reports/.gitkeep
+
+# Scratch folder - ignore images/PDFs but keep scripts
+scratch/*
+!scratch/.gitkeep
+!scratch/*.py
+
+# Node.js modules (from local MCP server installations)
+node_modules/
+package-lock.json
+package.json

@@ -1,0 +1,20 @@
+[project]
+name = "scribeai"
+version = "0.1.0"
+description = "ScribeAI agent pipeline using Google ADK 2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "google-adk>=2.0.0",
+    "google-genai>=0.1.0",
+    "mcp>=1.0.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0.0",
+    "openpyxl>=3.1.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
