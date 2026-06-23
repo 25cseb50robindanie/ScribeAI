@@ -1184,6 +1184,62 @@ def prepare_report_prompt(node_input, ctx: Context):
         output=f"Please generate the Markdown report and save it for the following details:\n{json.dumps(prompt_data, indent=2)}"
     )
 
+def run_report_generator_node(node_input, ctx: Context):
+    """Workflow node that programmatically generates the grading report and saves it locally."""
+    student_id = ctx.state.get("student_id") or "unknown_student"
+    student_name = ctx.state.get("student_name") or "Unknown Student"
+    roll_number = ctx.state.get("roll_number") or "Unknown Roll"
+    final_score = ctx.state.get("final_score", 0.0)
+    max_score = ctx.state.get("max_score", 20.0)
+    status = ctx.state.get("grading_status") or "Direct Pass"
+    final_eval = ctx.state.get("final_evaluation") or {}
+    
+    pct = (final_score / max_score) * 100 if max_score > 0 else 0.0
+    
+    # Format the report content
+    report_content = f"# ScribeAI Grading Report - {student_name}\n\n"
+    report_content += f"**Student Name:** {student_name}\n"
+    report_content += f"**Roll Number:** {roll_number}\n"
+    report_content += f"**Student ID:** {student_id}\n"
+    report_content += f"**Grading Status:** {status}\n"
+    report_content += f"**Overall Score:** {final_score:.1f} / {max_score:.1f} ({pct:.1f}%)\n\n"
+    
+    report_content += "## Question-by-Question breakdown\n\n"
+    
+    questions = final_eval.get("questions", [])
+    for q in questions:
+        qid = q.get("question_id")
+        q_score = q.get("total_score", 0.0)
+        q_max = q.get("max_score", 0.0)
+        report_content += f"### {qid} ({q_score:.1f} / {q_max:.1f} Marks)\n\n"
+        
+        report_content += "| Concept | Match Level | Score | Feedback |\n"
+        report_content += "| :--- | :--- | :--- | :--- |\n"
+        
+        for c in q.get("evaluations", []):
+            concept_name = c.get("concept")
+            match_level = c.get("match_level")
+            score = c.get("score")
+            feedback = c.get("feedback")
+            report_content += f"| {concept_name} | {match_level} | {score:.1f} | {feedback} |\n"
+            
+        report_content += "\n"
+        
+    # Save the report locally
+    title = f"report_{student_id}.md"
+    save_report_locally(title, report_content)
+    
+    # We yield the event to run_success_node
+    yield Event(
+        output={
+            "status": "SUCCESS",
+            "report_file": title,
+            "student_id": student_id,
+            "final_score": final_score,
+            "max_score": max_score
+        }
+    )
+
 def run_success_node(node_input, ctx: Context):
     """End-of-student-run success node. Updates spreadsheet and routes to next student in batch or compile."""
     status = ctx.state.get("grading_status")
@@ -1403,9 +1459,9 @@ root_agent = Workflow(
             "ESCALATE_TO_HUMAN": run_human_review_node
         }),
         
-        # Save Report path (Agent 4 Report Generator agent execution)
-        (prepare_report_prompt, agent_report_generator),
-        (agent_report_generator, run_success_node),
+        # Save Report path (programmatic Report Generator execution)
+        (prepare_report_prompt, run_report_generator_node),
+        (run_report_generator_node, run_success_node),
         
         # Human Review path
         (run_human_review_node, run_success_node),
