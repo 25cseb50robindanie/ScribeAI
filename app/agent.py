@@ -57,42 +57,259 @@ class EvaluationOutput(BaseModel):
 # 2. Reference / Default Marking Scheme
 # ==========================================
 
-DEFAULT_MARKING_SCHEME = [
-    {
-        "question_id": "Q1",
-        "description": "What is the difference between a clustered and non-clustered index?",
-        "max_score": 5,
-        "concepts": [
-            {
-                "concept": "clustered_index_order",
-                "max_score": 2.5,
-                "description": "Explaining that a clustered index determines the physical order of data storage in the table."
-            },
-            {
-                "concept": "non_clustered_index_structure",
-                "max_score": 2.5,
-                "description": "Explaining that a non-clustered index contains pointers or row locators to the actual data rows stored elsewhere."
-            }
-        ]
-    },
-    {
-        "question_id": "Q2",
-        "description": "What is a database deadlock and what are the conditions for it?",
-        "max_score": 5,
-        "concepts": [
-            {
-                "concept": "deadlock_definition",
-                "max_score": 2.0,
-                "description": "Explaining that it is a cycle where two or more transactions hold locks on resources the others need, waiting indefinitely."
-            },
-            {
-                "concept": "deadlock_conditions",
-                "max_score": 3.0,
-                "description": "Listing the necessary conditions: Mutual Exclusion, Hold & Wait, No Preemption, and Circular Wait."
-            }
-        ]
-    }
-]
+def parse_marking_scheme(marking_scheme) -> tuple[list, list]:
+    """Parses marking scheme (dict or list) and returns (questions, choice_rules)."""
+    if isinstance(marking_scheme, dict):
+        questions = marking_scheme.get("questions", [])
+        choice_rules = marking_scheme.get("choice_rules", [])
+    elif isinstance(marking_scheme, list):
+        questions = marking_scheme
+        choice_rules = []
+    else:
+        questions = []
+        choice_rules = []
+    return questions, choice_rules
+
+def calculate_max_score(marking_scheme) -> float:
+    """Calculates the maximum possible score for the paper, taking choice rules into account."""
+    questions, choice_rules = parse_marking_scheme(marking_scheme)
+    total_max = sum(q.get("max_score", 0) for q in questions)
+    
+    # Map from question_id to max_score for quick lookup
+    q_max_scores = {q.get("question_id"): q.get("max_score", 0) for q in questions}
+    
+    for rule in choice_rules:
+        qids = rule.get("question_ids", [])
+        max_attempts = rule.get("max_attempts", 0)
+        
+        # Get max scores of the questions in the rule
+        rule_max_scores = [q_max_scores.get(qid, 0) for qid in qids if qid in q_max_scores]
+        if len(rule_max_scores) > max_attempts:
+            # Sort descending to find the largest max scores
+            rule_max_scores.sort(reverse=True)
+            # The maximum possible score from this group is the sum of the top `max_attempts` scores
+            allowed_max = sum(rule_max_scores[:max_attempts])
+            # The total max score of all questions in this group
+            group_total = sum(rule_max_scores)
+            # Subtract the excess from the overall total
+            excess = group_total - allowed_max
+            if excess > 0:
+                total_max -= excess
+                
+    return total_max
+
+def apply_choice_rules(evaluation_data, extraction_output, marking_scheme):
+    """Enforces choice rules on evaluation output based on student's actual attempts order."""
+    _, choice_rules = parse_marking_scheme(marking_scheme)
+    for rule in choice_rules:
+        qids_in_rule = set(rule.get("question_ids", []))
+        max_attempts = rule.get("max_attempts", 2)
+        feedback = rule.get("feedback", "Answer disregarded as student attempted more than allowed questions in this part.")
+        
+        # Track attempted questions in rule in order of transcription list
+        attempted_qids = []
+        for ans in extraction_output.get("answers", []):
+            qid = ans.get("question_id")
+            text = ans.get("extracted_text", "").strip()
+            
+            is_attempted = False
+            if text and text.lower() not in ("not attempted", "n/a", "none", "no answer", "empty", "not answered"):
+                is_attempted = True
+                
+            if qid in qids_in_rule and is_attempted:
+                attempted_qids.append(qid)
+        
+        if len(attempted_qids) > max_attempts:
+            allowed_qids = set(attempted_qids[:max_attempts])
+            disregarded_qids = set(attempted_qids[max_attempts:])
+            
+            for q_eval in evaluation_data.get("questions", []):
+                qid = q_eval.get("question_id")
+                if qid in disregarded_qids:
+                    q_eval["total_score"] = 0.0
+                    for c_eval in q_eval.get("evaluations", []):
+                        c_eval["match_level"] = "no match"
+                        c_eval["score"] = 0.0
+                        c_eval["feedback"] = feedback
+
+DEFAULT_MARKING_SCHEME = {
+    "choice_rules": [
+        {
+            "name": "Part B Choice",
+            "question_ids": ["Q6", "Q7", "Q8"],
+            "max_attempts": 2,
+            "feedback": "Answer disregarded as student attempted more than two questions in Part B (only the first two attempts are graded)."
+        }
+    ],
+    "questions": [
+        {
+            "question_id": "Q1",
+            "description": "Define Encapsulation.",
+            "max_score": 2,
+            "concepts": [
+                {
+                    "concept": "encapsulation_definition",
+                    "max_score": 1.0,
+                    "description": "Defining encapsulation as binding data and functions into a single unit (class)."
+                },
+                {
+                    "concept": "data_hiding_control",
+                    "max_score": 1.0,
+                    "description": "Mentioning data hiding or controlling access via access specifiers (private/public)."
+                }
+            ]
+        },
+        {
+            "question_id": "Q2",
+            "description": "What is Inheritance?",
+            "max_score": 2,
+            "concepts": [
+                {
+                    "concept": "inheritance_definition",
+                    "max_score": 1.0,
+                    "description": "Defining inheritance as a mechanism where a new class acquires properties of an existing class."
+                },
+                {
+                    "concept": "code_reusability",
+                    "max_score": 1.0,
+                    "description": "Mentioning code reusability or hierarchical relationships (base/derived class)."
+                }
+            ]
+        },
+        {
+            "question_id": "Q3",
+            "description": "What is a Constructor?",
+            "max_score": 2,
+            "concepts": [
+                {
+                    "concept": "constructor_definition",
+                    "max_score": 1.0,
+                    "description": "Defining a constructor as a special member function of a class that initializes objects."
+                },
+                {
+                    "concept": "constructor_properties",
+                    "max_score": 1.0,
+                    "description": "Mentioning constructor properties (same name as class, no return type, called automatically on object creation)."
+                }
+            ]
+        },
+        {
+            "question_id": "Q4",
+            "description": "What is Polymorphism?",
+            "max_score": 2,
+            "concepts": [
+                {
+                    "concept": "polymorphism_definition",
+                    "max_score": 1.0,
+                    "description": "Defining polymorphism as 'many forms' or the ability of a message/function to be processed in more than one way."
+                },
+                {
+                    "concept": "polymorphism_types",
+                    "max_score": 1.0,
+                    "description": "Mentioning the types of polymorphism (compile-time/static and run-time/dynamic)."
+                }
+            ]
+        },
+        {
+            "question_id": "Q5",
+            "description": "What is Data Abstraction?",
+            "max_score": 2,
+            "concepts": [
+                {
+                    "concept": "abstraction_definition",
+                    "max_score": 1.0,
+                    "description": "Defining abstraction as hiding internal implementation details and showing only essential features to the user."
+                },
+                {
+                    "concept": "abstraction_implementation",
+                    "max_score": 1.0,
+                    "description": "Mentioning how it is achieved (e.g. using classes, access specifiers, or header files)."
+                }
+            ]
+        },
+        {
+            "question_id": "Q6",
+            "description": "Explain Inheritance with a suitable example.",
+            "max_score": 5,
+            "concepts": [
+                {
+                    "concept": "inheritance_concept",
+                    "max_score": 1.5,
+                    "description": "Defining inheritance, base/derived classes, and how child class inherits parent features."
+                },
+                {
+                    "concept": "access_specifiers",
+                    "max_score": 1.0,
+                    "description": "Explaining the role of visibility/access specifiers (public, protected, private) in inheritance."
+                },
+                {
+                    "concept": "code_example",
+                    "max_score": 1.5,
+                    "description": "Providing a valid C++ code example showing base and derived classes."
+                },
+                {
+                    "concept": "example_explanation",
+                    "max_score": 1.0,
+                    "description": "Explaining how the example demonstrates code reuse (derived class accessing base class members)."
+                }
+            ]
+        },
+        {
+            "question_id": "Q7",
+            "description": "Explain the advantages of Encapsulation in Object-Oriented Programming.",
+            "max_score": 5,
+            "concepts": [
+                {
+                    "concept": "data_hiding_security",
+                    "max_score": 2.0,
+                    "description": "Detailed explanation of data hiding/security (using private variables to restrict direct external access)."
+                },
+                {
+                    "concept": "getters_setters_control",
+                    "max_score": 1.5,
+                    "description": "Explaining the control/validation provided by getter/setter methods (read-only access, constraints)."
+                },
+                {
+                    "concept": "maintainability_modularity",
+                    "max_score": 1.5,
+                    "description": "Explaining ease of code maintainability/modularity (changing internal details without breaking client code)."
+                }
+            ]
+        },
+        {
+            "question_id": "Q8",
+            "description": "Differentiate between Compile-Time Polymorphism and Run-Time Polymorphism with suitable examples.",
+            "max_score": 5,
+            "concepts": [
+                {
+                    "concept": "compile_time_explanation",
+                    "max_score": 1.0,
+                    "description": "Defining compile-time polymorphism, early/static binding, and overload resolution."
+                },
+                {
+                    "concept": "run_time_explanation",
+                    "max_score": 1.0,
+                    "description": "Defining run-time polymorphism, late/dynamic binding, and virtual function dispatch."
+                },
+                {
+                    "concept": "key_differences",
+                    "max_score": 1.0,
+                    "description": "Comparing key differences (speed/performance, runtime overhead, compile-time detection)."
+                },
+                {
+                    "concept": "compile_time_example",
+                    "max_score": 1.0,
+                    "description": "Providing C++ code/example demonstrating function overloading or operator overloading."
+                },
+                {
+                    "concept": "run_time_example",
+                    "max_score": 1.0,
+                    "description": "Providing C++ code/example demonstrating virtual functions, base pointers, and overriding."
+                }
+            ]
+        }
+    ]
+}
 
 # ==========================================
 # 3. Report Storage Integration (Local & Google Drive)
@@ -662,7 +879,10 @@ Respond with JSON matching the EvaluationOutput schema.
         model=agent_evaluator.model,
         contents=prompt,
         config=types.GenerateContentConfig(
-            system_instruction="Evaluate the student answers. Assign scores and confidence (0-100) as integers. Respond in JSON conforming to the EvaluationOutput schema.",
+            system_instruction=(
+                "Evaluate the student answers. Assign scores and confidence (0-100) as integers. Respond in JSON conforming to the EvaluationOutput schema.\n"
+                "Important Choice Rule: If the marking scheme specifies any 'choice_rules', you must enforce them. Specifically, if a rule sets a limit on the number of attempts for a group of questions (e.g., maximum attempts in a part), identify if the student attempted more than the allowed limit (based on the transcription text order). For any excess attempted questions beyond the limit, assign a score of 0 points to all concepts of that question and explain the disregard in the concept feedback using the rule's feedback message."
+            ),
             response_mime_type="application/json",
             response_schema=EvaluationOutput,
         )
@@ -670,6 +890,9 @@ Respond with JSON matching the EvaluationOutput schema.
 
     evaluation_data = json.loads(response.text)
     evaluation_data["evaluation_confidence_score"] = int(evaluation_data.get("evaluation_confidence_score", 0))
+
+    # Programmatically apply choice rules
+    apply_choice_rules(evaluation_data, extraction_output, marking_scheme)
 
     # Save to evaluations/ directory
     evaluations_dir = os.path.abspath("evaluations")
@@ -707,7 +930,8 @@ def router_node(node_input, ctx: Context):
     elif overall_confidence >= 80 and evaluation_confidence >= 80:
         # Check for extreme scores
         total_score = sum(q.get("total_score", 0) for q in evaluation_output.get("questions", []))
-        max_score = sum(q.get("max_score", 0) for q in evaluation_output.get("questions", []))
+        marking_scheme = ctx.state.get("marking_scheme") or DEFAULT_MARKING_SCHEME
+        max_score = calculate_max_score(marking_scheme)
         pct = (total_score / max_score) if max_score > 0 else 0.5
         
         if pct < 0.10 or pct > 0.95:
@@ -739,7 +963,7 @@ def run_report_direct_node(node_input, ctx: Context):
     """Bypasses re-evaluation and prepares original evaluation for report generation."""
     evaluation_output = ctx.state.get("evaluation_output")
     marking_scheme = ctx.state.get("marking_scheme") or DEFAULT_MARKING_SCHEME
-    max_score = sum(q.get("max_score", 0) for q in marking_scheme)
+    max_score = calculate_max_score(marking_scheme)
     total_score = sum(q.get("total_score", 0) for q in evaluation_output.get("questions", []))
 
     yield Event(
@@ -778,7 +1002,10 @@ Respond with JSON matching the EvaluationOutput schema.
         model=agent_reevaluator.model,
         contents=prompt,
         config=types.GenerateContentConfig(
-            system_instruction="Perform an independent senior evaluation. Assign scores and confidence (0-100) as integers. Respond in JSON conforming to the EvaluationOutput schema.",
+            system_instruction=(
+                "Perform an independent senior evaluation. Assign scores and confidence (0-100) as integers. Respond in JSON conforming to the EvaluationOutput schema.\n"
+                "Important Choice Rule: If the marking scheme specifies any 'choice_rules', you must enforce them. Specifically, if a rule sets a limit on the number of attempts for a group of questions (e.g., maximum attempts in a part), identify if the student attempted more than the allowed limit (based on the transcription text order). For any excess attempted questions beyond the limit, assign a score of 0 points to all concepts of that question and explain the disregard in the concept feedback using the rule's feedback message."
+            ),
             response_mime_type="application/json",
             response_schema=EvaluationOutput,
         )
@@ -786,6 +1013,9 @@ Respond with JSON matching the EvaluationOutput schema.
 
     reeval_data = json.loads(response.text)
     reeval_data["evaluation_confidence_score"] = int(reeval_data.get("evaluation_confidence_score", 0))
+
+    # Programmatically apply choice rules
+    apply_choice_rules(reeval_data, extraction_output, marking_scheme)
 
     # Save to evaluations/ directory
     evaluations_dir = os.path.abspath("evaluations")
@@ -807,7 +1037,7 @@ def run_comparison_node(node_input, ctx: Context):
     reeval = ctx.state.get("reeval_output")
     marking_scheme = ctx.state.get("marking_scheme") or DEFAULT_MARKING_SCHEME
 
-    max_score = sum(q.get("max_score", 0) for q in marking_scheme)
+    max_score = calculate_max_score(marking_scheme)
     orig_score = sum(q.get("total_score", 0) for q in orig_eval.get("questions", []))
     reeval_score = sum(q.get("total_score", 0) for q in reeval.get("questions", []))
 
@@ -898,7 +1128,7 @@ def run_human_review_node(node_input, ctx: Context):
     total_score = sum(q.get("total_score", 0) for q in eval_output.get("questions", [])) if eval_output else None
     
     marking_scheme = ctx.state.get("marking_scheme") or DEFAULT_MARKING_SCHEME
-    max_score = sum(q.get("max_score", 0) for q in marking_scheme)
+    max_score = calculate_max_score(marking_scheme)
     
     # Update spreadsheet
     update_results_spreadsheet(

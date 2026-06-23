@@ -1,0 +1,178 @@
+{
+  "choice_rules": [
+    {
+      "name": "Part B Choice",
+      "question_ids": ["Q6", "Q7", "Q8"],
+      "max_attempts": 2,
+      "feedback": "Answer disregarded as student attempted more than two questions in Part B (only the first two attempts are graded)."
+    }
+  ],
+  "questions": [
+    {
+      "question_id": "Q1",
+      "description": "Define Encapsulation.",
+      "max_score": 2,
+      "concepts": [
+        {
+          "concept": "encapsulation_definition",
+          "max_score": 1.0,
+          "description": "Defining encapsulation as binding data and functions into a single unit (class)."
+        },
+        {
+          "concept": "data_hiding_control",
+          "max_score": 1.0,
+          "description": "Mentioning data hiding or controlling access via access specifiers (private/public)."
+        }
+      ]
+    },
+    {
+      "question_id": "Q2",
+      "description": "What is Inheritance?",
+      "max_score": 2,
+      "concepts": [
+        {
+          "concept": "inheritance_definition",
+          "max_score": 1.0,
+          "description": "Defining inheritance as a mechanism where a new class acquires properties of an existing class."
+        },
+        {
+          "concept": "code_reusability",
+          "max_score": 1.0,
+          "description": "Mentioning code reusability or hierarchical relationships (base/derived class)."
+        }
+      ]
+    },
+    {
+      "question_id": "Q3",
+      "description": "What is a Constructor?",
+      "max_score": 2,
+      "concepts": [
+        {
+          "concept": "constructor_definition",
+          "max_score": 1.0,
+          "description": "Defining a constructor as a special member function of a class that initializes objects."
+        },
+        {
+          "concept": "constructor_properties",
+          "max_score": 1.0,
+          "description": "Mentioning constructor properties (same name as class, no return type, called automatically on object creation)."
+        }
+      ]
+    },
+    {
+      "question_id": "Q4",
+      "description": "What is Polymorphism?",
+      "max_score": 2,
+      "concepts": [
+        {
+          "concept": "polymorphism_definition",
+          "max_score": 1.0,
+          "description": "Defining polymorphism as 'many forms' or the ability of a message/function to be processed in more than one way."
+        },
+        {
+          "concept": "polymorphism_types",
+          "max_score": 1.0,
+          "description": "Mentioning the types of polymorphism (compile-time/static and run-time/dynamic)."
+        }
+      ]
+    },
+    {
+      "question_id": "Q5",
+      "description": "What is Data Abstraction?",
+      "max_score": 2,
+      "concepts": [
+        {
+          "concept": "abstraction_definition",
+          "max_score": 1.0,
+          "description": "Defining abstraction as hiding internal implementation details and showing only essential features to the user."
+        },
+        {
+          "concept": "abstraction_implementation",
+          "max_score": 1.0,
+          "description": "Mentioning how it is achieved (e.g. using classes, access specifiers, or header files)."
+        }
+      ]
+    },
+    {
+      "question_id": "Q6",
+      "description": "Explain Inheritance with a suitable example.",
+      "max_score": 5,
+      "concepts": [
+        {
+          "concept": "inheritance_concept",
+          "max_score": 1.5,
+          "description": "Defining inheritance, base/derived classes, and how child class inherits parent features."
+        },
+        {
+          "concept": "access_specifiers",
+          "max_score": 1.0,
+          "description": "Explaining the role of visibility/access specifiers (public, protected, private) in inheritance."
+        },
+        {
+          "concept": "code_example",
+          "max_score": 1.5,
+          "description": "Providing a valid C++ code example showing base and derived classes."
+        },
+        {
+          "concept": "example_explanation",
+          "max_score": 1.0,
+          "description": "Explaining how the example demonstrates code reuse (derived class accessing base class members)."
+        }
+      ]
+    },
+    {
+      "question_id": "Q7",
+      "description": "Explain the advantages of Encapsulation in Object-Oriented Programming.",
+      "max_score": 5,
+      "concepts": [
+        {
+          "concept": "data_hiding_security",
+          "max_score": 2.0,
+          "description": "Detailed explanation of data hiding/security (using private variables to restrict direct external access)."
+        },
+        {
+          "concept": "getters_setters_control",
+          "max_score": 1.5,
+          "description": "Explaining the control/validation provided by getter/setter methods (read-only access, constraints)."
+        },
+        {
+          "concept": "maintainability_modularity",
+          "max_score": 1.5,
+          "description": "Explaining ease of code maintainability/modularity (changing internal details without breaking client code)."
+        }
+      ]
+    },
+    {
+      "question_id": "Q8",
+      "description": "Differentiate between Compile-Time Polymorphism and Run-Time Polymorphism with suitable examples.",
+      "max_score": 5,
+      "concepts": [
+        {
+          "concept": "compile_time_explanation",
+          "max_score": 1.0,
+          "description": "Defining compile-time polymorphism, early/static binding, and overload resolution."
+        },
+        {
+          "concept": "run_time_explanation",
+          "max_score": 1.0,
+          "description": "Defining run-time polymorphism, late/dynamic binding, and virtual function dispatch."
+        },
+        {
+          "concept": "key_differences",
+          "max_score": 1.0,
+          "description": "Comparing key differences (speed/performance, runtime overhead, compile-time detection)."
+        },
+        {
+          "concept": "compile_time_example",
+          "max_score": 1.0,
+          "description": "Providing C++ code/example demonstrating function overloading or operator overloading."
+        },
+        {
+          "concept": "run_time_example",
+          "max_score": 1.0,
+          "description": "Providing C++ code/example demonstrating virtual functions, base pointers, and overriding."
+        }
+      ]
+    }
+  ]
+}
