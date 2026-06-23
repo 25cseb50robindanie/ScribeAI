@@ -4,7 +4,7 @@ AI-powered handwritten answer sheet evaluation using Google ADK 2.0, Gemini 2.5 
 
 ---
 
-## 🎯 Kaggle Submission: Reference Materials & Quick Start
+## 🎯 Kaggle Submission: Reference Materials
 
 This repository is prepared for Kaggle evaluation and includes pre-packaged reference materials and answer sheets to demonstrate ScribeAI's capabilities across different evaluation scenarios.
 
@@ -18,18 +18,55 @@ The grading engine uses a structured C++ OOP marking scheme located at **[app/ma
 > **AI Grading Axiom**: The grading capability of the AI is directly proportional to how detailed and robust the marking scheme JSON is. Detailed concept lists lead to extremely accurate, objective, and consistent evaluations.
 
 ### 📂 Sample Student Answer Sheets (in `sample/`)
-The `sample/` directory contains 5 distinct student answer sheets representing diverse handwriting and evaluation profiles:
-* **Robin Danie (`Answersheet_Robin_Danie_CS001.pdf`)**: Clear, highly legible, print-like handwriting.
-* **Ganga (`Answersheet_Bad_CS002.pdf`)**: Messy, rushed, and typical bad handwriting.
-* **Bala Krishnan (`Answersheet_Border_CS003.pdf`)**: Normal handwriting, borderline grading case.
-* **Sumitha (`Answersheet_PromptInjection_CS004.pdf`)**: Attempted prompt injections begging for pass marks.
-* **Arul (`Answersheet_worstHandwriting_CS005.pdf`)**: Extremely bad/worst handwriting with crossed-out prompt injections.
+The `sample/` directory contains 5 distinct student answer sheets for testing:
+* `sample/Answersheet_Robin_Danie_CS001.pdf`
+* `sample/Answersheet_Bad_CS002.pdf`
+* `sample/Answersheet_Border_CS003.pdf`
+* `sample/Answersheet_PromptInjection_CS004.pdf`
+* `sample/Answersheet_worstHandwriting_CS005.pdf`
 
 ---
 
-## 🚀 Copy-Paste Evaluation Commands
+## ⚙️ Installation & Setup
 
-You can run evaluations locally in two ways: programmatically via scripts or interactively in the Web UI playground.
+Follow these steps to set up the ScribeAI grading pipeline on your local machine:
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd scribeai
+```
+
+### 2. Install Dependencies
+ScribeAI uses `uv` for python environment and dependency management. Run the following command to sync and install the environment:
+```bash
+uv sync
+```
+
+### 3. Configure Environment Variables
+Create a `.env` file in the project root folder and provide your Gemini API key:
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+> [!WARNING]
+> **API Key Safety**: Do not commit your `.env` file to Git. Every evaluator must use their own API key.
+
+### 4. Configure Google Drive MCP (Optional)
+ScribeAI can automatically upload results and reports to Google Drive. To configure this optional integration:
+1. **Create Google Cloud Project**: Go to the [Google Cloud Console](https://console.cloud.google.com/), create a project, and enable the **Google Drive API**.
+2. **Setup OAuth Consent & Client**: Configure the OAuth Consent Screen and create client credentials for a **Desktop app**.
+3. **Save Credentials**: Download the client credentials JSON file, rename it to `credentials.json`, and place it in the root folder of this project.
+4. **Install Local Dependencies**: On Windows, to prevent temporary cache issues, install the MCP server locally in the workspace:
+   ```bash
+   npm install @modelcontextprotocol/server-gdrive
+   ```
+5. **Authenticate**: Upon your first pipeline run, the Google Drive MCP server will prompt you to authenticate via your web browser.
+
+---
+
+## 🚀 Running ScribeAI (Web UI & CLI)
+
+Once setup is complete, you can run evaluations in two ways:
 
 ### Option A: Interactive Web UI Playground
 Start the local server:
@@ -291,69 +328,9 @@ scribeai/
 
 ---
 
-## Setup
-
-### Clone Repository
-
-```bash
-git clone <repository-url>
-cd scribeai
-```
-
-### Install Dependencies
-
-```bash
-uv sync
-```
-
-### Configure Environment Variables
-
-Create a `.env` file in the project root.
-
-Example:
-
-```env
-GEMINI_API_KEY=your_api_key_here
-```
-
-> IMPORTANT:
-> Do not commit your API keys.
-> Every user must create their own `.env` file and provide their own Gemini API key for the project to function.
-
-### Configure Google Drive MCP (Optional)
-
-ScribeAI can automatically upload results and reports to Google Drive. To configure this optional integration:
-
-1. **Create Google Cloud Project**: Go to the [Google Cloud Console](https://console.cloud.google.com/), create a project, and enable the **Google Drive API**.
-2. **Setup OAuth Consent & Client**: Configure the OAuth Consent Screen and create client credentials for a **Desktop app**.
-3. **Save Credentials**: Download the client credentials JSON file, rename it to `credentials.json`, and place it in the root folder of this project. (Note: `credentials.json` is ignored by `.gitignore` so it won't be pushed to Git).
-4. **Install Local Dependencies**: On Windows systems, the NPX temporary cache can sometimes run into dependency loading issues. To ensure it runs cleanly, install the MCP server locally in the workspace:
-   ```bash
-   npm install @modelcontextprotocol/server-gdrive
-   ```
-5. **Authenticate**: When you run the pipeline for the first time, the local Google Drive MCP server will start and open a browser window asking you to log in to your Google Account. Grant access, and ScribeAI will handle the rest.
 
 ---
 
-## Running the Project
-
-Launch ADK Web UI:
-
-```bash
-# Using Make
-make playground
-
-# Or using uv directly
-uv run adk web --port 8000 app
-```
-
-Open:
-
-```text
-http://localhost:8000
-```
-
----
 
 ## Running Tests
 
