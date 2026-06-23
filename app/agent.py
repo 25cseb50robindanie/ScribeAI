@@ -1301,13 +1301,15 @@ def run_report_generator_node(node_input, ctx: Context):
     final_eval = ctx.state.get("final_evaluation") or {}
     
     pct = (final_score / max_score) * 100 if max_score > 0 else 0.0
+    result = "Pass" if pct >= 50.0 else "Fail"
     
     # Format the report content
     report_content = f"# ScribeAI Grading Report - {student_name}\n\n"
     report_content += f"**Student Name:** {student_name}\n"
     report_content += f"**Roll Number:** {roll_number}\n"
     report_content += f"**Student ID:** {student_id}\n"
-    report_content += f"**Grading Status:** {status}\n"
+    report_content += f"**Grading Status:** {status} (Workflow Route)\n"
+    report_content += f"**Result:** {result}\n"
     report_content += f"**Overall Score:** {final_score:.1f} / {max_score:.1f} ({pct:.1f}%)\n\n"
     
     report_content += "## Question-by-Question breakdown\n\n"
