@@ -20,8 +20,8 @@ The grading engine uses a structured C++ OOP marking scheme located at **[app/ma
 ### 📂 Sample Student Answer Sheets (in `sample/`)
 The `sample/` directory contains 5 distinct student answer sheets for testing:
 * `sample/Answersheet_Robin_Danie_CS001.pdf`
-* `sample/Answersheet_Bad_CS002.pdf`
-* `sample/Answersheet_Border_CS003.pdf`
+* `sample/Answersheet_clearFail_CS002.pdf`
+* `sample/Answersheet_average_CS003.pdf`
 * `sample/Answersheet_PromptInjection_CS004.pdf`
 * `sample/Answersheet_worstHandwriting_CS005.pdf`
 
