@@ -367,18 +367,15 @@ Current version supports:
 
 Current version does not support:
 
-* Mathematical derivations
 * Circuit diagrams
 * Graphs
 * Engineering drawings
-* Complex equation grading
 
 ---
 
 ## Future Improvements
 
 * Diagram evaluation
-* Mathematical expression grading
 * Professor-specific grading adaptation
 * University ERP integration
 * Web dashboard
